@@ -5,8 +5,8 @@ from PyQt5.QtGui import QPixmap, QKeyEvent
 from PyQt5.QtCore import Qt
 
 
-def loadImg(ll, z, l, w=450, h=450):
-    map_request = f"http://static-maps.yandex.ru/1.x/?ll={ll}&l={l}&z={z}&size={w},{h}"
+def loadImg(ll: tuple[float, float], z: int, l: str, w=450, h=450):
+    map_request = f"http://static-maps.yandex.ru/1.x/?ll={ll[0]},{ll[1]}&l={l}&z={z}&size={w},{h}"
     response = requests.get(map_request)
 
     if not response:
@@ -27,7 +27,8 @@ def loadImg(ll, z, l, w=450, h=450):
 class Form(QWidget):
     def __init__(self):
         super().__init__()
-        self.z = 10
+        self.z = 13
+        self.ll = [37.530887, 55.703118]
         self.initUI()
         self.setImg()
 
@@ -49,9 +50,25 @@ class Form(QWidget):
             self.z -= 1
             self.z = max(self.z, 0)
             self.setImg()
+        if (e.key() == Qt.Key.Key_Right):
+            self.ll[0] += 0.0045 * 2 ** (17 - self.z)
+            self.ll[0] = min(self.ll[0], 180)
+            self.setImg()
+        if (e.key() == Qt.Key.Key_Left):
+            self.ll[0] -= 0.0045 * 2 ** (17 - self.z)
+            self.ll[0] = max(self.ll[0], -180)
+            self.setImg()
+        if (e.key() == Qt.Key.Key_Up):
+            self.ll[1] += 0.0025 * 2 ** (17 - self.z)
+            self.ll[1] = min(self.ll[1], 85)
+            self.setImg()
+        if (e.key() == Qt.Key.Key_Down):
+            self.ll[1] -= 0.0025 * 2 ** (17 - self.z)
+            self.ll[1] = max(self.ll[1], -85)
+            self.setImg()
 
     def setImg(self):
-        self.pixmap = loadImg("37.530887,55.703118", self.z, "map")
+        self.pixmap = loadImg(self.ll, self.z, "map")
         self.label.setPixmap(self.pixmap)
 
 
