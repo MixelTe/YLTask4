@@ -43,11 +43,14 @@ def getCoords(geocode):
 
     response = requests.get(geocoder_request, params=params)
     if response:
-        json_response = response.json()
-        toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
-        toponym_coodrinates = toponym["Point"]["pos"]
-        toponym_coodrinates = list(map(float, toponym_coodrinates.split(" ")))
-        return toponym_coodrinates
+        try:
+            json_response = response.json()
+            toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+            toponym_coodrinates = toponym["Point"]["pos"]
+            toponym_coodrinates = list(map(float, toponym_coodrinates.split(" ")))
+            return toponym_coodrinates
+        except Exception:
+            return None
     else:
         return None
 
@@ -57,6 +60,7 @@ class Form(QWidget):
         super().__init__()
         self.z = 13
         self.ll = [37.530887, 55.703118]
+        self.points = []
         self.initUI()
         self.setImg()
 
@@ -147,7 +151,10 @@ class Form(QWidget):
             return "sat,skl"
         return "map"
 
-    def setImg(self, *arg, pt=None):
+    def setImg(self):
+        pt = None
+        if (len(self.points) > 0):
+            pt = "~".join(f"{p[0]},{p[1]},pm2rdm" for p in self.points)
         self.pixmap = loadImg(self.ll, self.z, self.getMapType(), pt)
         self.label.setPixmap(self.pixmap)
 
@@ -161,8 +168,9 @@ class Form(QWidget):
             msgbox.exec()
             return
         self.ll = coords
+        self.points.append(tuple(coords))
         self.inp_search.clearFocus()
-        self.setImg(pt=f"{','.join(map(str, coords))},pm2rdm")
+        self.setImg()
 
 
 if __name__ == '__main__':
