@@ -33,7 +33,7 @@ def loadImg(ll: tuple[float, float], z: int, l: str, pt=None, w=450, h=450):
     return pixmap
 
 
-def getCoords(geocode):
+def getData(geocode):
     geocoder_request = f"https://geocode-maps.yandex.ru/1.x/"
     params = {
         "apikey": "40d1649f-0493-4b70-98ba-98533de7710b",
@@ -46,13 +46,14 @@ def getCoords(geocode):
         try:
             json_response = response.json()
             toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+            name = toponym["name"]
             toponym_coodrinates = toponym["Point"]["pos"]
             toponym_coodrinates = list(map(float, toponym_coodrinates.split(" ")))
-            return toponym_coodrinates
+            return toponym_coodrinates, name
         except Exception:
-            return None
+            return None, None
     else:
-        return None
+        return None, None
 
 
 class Form(QWidget):
@@ -65,7 +66,7 @@ class Form(QWidget):
         self.setImg()
 
     def initUI(self):
-        self.setGeometry(300, 300, 482, 580)
+        self.setGeometry(300, 300, 482, 610)
         self.setWindowTitle('Большая задача по Maps API')
         font = QFont()
         font.setPointSize(10)
@@ -105,15 +106,17 @@ class Form(QWidget):
         self.inp_search = QLineEdit(self)
         self.inp_search.setGeometry(10, 520, 461, 21)
         self.btn_search = QPushButton(self)
-        self.btn_search.setGeometry(400, 550, 71, 21)
+        self.btn_search.setGeometry(400, 580, 71, 21)
         self.btn_search.setText("Искать")
         self.btn_search.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.btn_search.clicked.connect(self.search)
         self.btn_delete = QPushButton(self)
-        self.btn_delete.setGeometry(10, 550, 191, 23)
+        self.btn_delete.setGeometry(10, 580, 191, 23)
         self.btn_delete.setText("Сброс поискового результата")
         self.btn_delete.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.btn_delete.clicked.connect(self.delete)
+        self.lbl_search = QLabel(self)
+        self.lbl_search.setGeometry(10, 550, 461, 21)
 
     def mousePressEvent(self, e) -> None:
         self.inp_search.clearFocus()
@@ -164,7 +167,7 @@ class Form(QWidget):
         self.label.setPixmap(self.pixmap)
 
     def search(self):
-        coords = getCoords(self.inp_search.text())
+        coords, name = getData(self.inp_search.text())
         if (coords is None):
             msgbox = QMessageBox()
             msgbox.setWindowTitle("Поиск объекта")
@@ -173,6 +176,7 @@ class Form(QWidget):
             msgbox.exec()
             return
         self.ll = coords
+        self.lbl_search.setText(name)
         self.points.append(tuple(coords))
         self.inp_search.clearFocus()
         self.setImg()
@@ -182,6 +186,7 @@ class Form(QWidget):
             return
         self.points.pop()
         self.inp_search.setText("")
+        self.lbl_search.setText("")
         self.setImg()
 
 
