@@ -65,7 +65,7 @@ class Form(QWidget):
         self.setImg()
 
     def initUI(self):
-        self.setGeometry(300, 300, 482, 550)
+        self.setGeometry(300, 300, 482, 580)
         self.setWindowTitle('Большая задача по Maps API')
         font = QFont()
         font.setPointSize(10)
@@ -103,12 +103,17 @@ class Form(QWidget):
         horizontalLayout.addWidget(self.rb_map_hyb)
 
         self.inp_search = QLineEdit(self)
-        self.inp_search.setGeometry(10, 520, 371, 21)
+        self.inp_search.setGeometry(10, 520, 461, 21)
         self.btn_search = QPushButton(self)
-        self.btn_search.setGeometry(394, 520, 71, 21)
+        self.btn_search.setGeometry(400, 550, 71, 21)
         self.btn_search.setText("Искать")
         self.btn_search.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.btn_search.clicked.connect(self.search)
+        self.btn_delete = QPushButton(self)
+        self.btn_delete.setGeometry(10, 550, 191, 23)
+        self.btn_delete.setText("Сброс поискового результата")
+        self.btn_delete.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.btn_delete.clicked.connect(self.delete)
 
     def mousePressEvent(self, e) -> None:
         self.inp_search.clearFocus()
@@ -170,6 +175,13 @@ class Form(QWidget):
         self.ll = coords
         self.points.append(tuple(coords))
         self.inp_search.clearFocus()
+        self.setImg()
+
+    def delete(self):
+        if (len(self.points) == 0):
+            return
+        self.points.pop()
+        self.inp_search.setText("")
         self.setImg()
 
 
