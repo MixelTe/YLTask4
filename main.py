@@ -1,8 +1,8 @@
 import sys
 import requests
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QMessageBox, QGroupBox
-from PyQt5.QtWidgets import QHBoxLayout, QRadioButton, QLineEdit, QPushButton, QCheckBox
-from PyQt5.QtGui import QPixmap, QKeyEvent, QFont
+from PyQt5.QtWidgets import QHBoxLayout, QRadioButton, QLineEdit, QPushButton, QCheckBox, QTextEdit, QFrame
+from PyQt5.QtGui import QPixmap, QKeyEvent, QFont, QMouseEvent
 from PyQt5.QtCore import Qt, QEvent
 
 
@@ -57,6 +57,15 @@ def getData(geocode):
         return None, None, None
 
 
+def rectPointIntersect(rect, point):
+    return (
+        rect[0] + rect[2] >= point[0] and
+        point[0] >= rect[0] and
+        rect[1] + rect[3] >= point[1] and
+        point[1] >= rect[1]
+    )
+
+
 class Form(QWidget):
     def __init__(self):
         super().__init__()
@@ -68,8 +77,8 @@ class Form(QWidget):
         self.setImg()
 
     def initUI(self):
-        self.setGeometry(300, 300, 482, 610)
-        self.setFixedSize(482, 610)
+        self.setGeometry(300, 300, 482, 620)
+        self.setFixedSize(482, 620)
         self.setWindowTitle('Большая задача по Maps API')
         font = QFont()
         font.setPointSize(10)
@@ -109,27 +118,46 @@ class Form(QWidget):
         self.inp_search = QLineEdit(self)
         self.inp_search.setGeometry(10, 520, 461, 21)
         self.btn_search = QPushButton(self)
-        self.btn_search.setGeometry(400, 580, 71, 21)
+        self.btn_search.setGeometry(400, 590, 71, 21)
         self.btn_search.setText("Искать")
         self.btn_search.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.btn_search.clicked.connect(self.search)
         self.btn_delete = QPushButton(self)
-        self.btn_delete.setGeometry(10, 580, 191, 23)
+        self.btn_delete.setGeometry(10, 590, 191, 23)
         self.btn_delete.setText("Сброс поискового результата")
         self.btn_delete.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.btn_delete.clicked.connect(self.delete)
-        self.lbl_search = QLabel(self)
-        self.lbl_search.setGeometry(10, 550, 461, 21)
+        self.lbl_search = QTextEdit(self)
+        self.lbl_search.setGeometry(10, 550, 461, 31)
+        self.lbl_search.setReadOnly(True)
+        self.lbl_search.setStyleSheet(u"background-color: rgba(255, 255, 255, 0);")
+        self.lbl_search.setFrameShape(QFrame.NoFrame)
         self.cb_index = QCheckBox(self)
-        self.cb_index.setGeometry(210, 580, 181, 21)
+        self.cb_index.setGeometry(210, 590, 181, 21)
         font1 = QFont()
         font1.setPointSize(8)
         self.cb_index.setFont(font1)
         self.cb_index.setText("Показывать почтовый индекс")
         self.cb_index.stateChanged.connect(self.setPlaceText)
 
-    def mousePressEvent(self, e) -> None:
+    def mousePressEvent(self, e: QMouseEvent) -> None:
         self.inp_search.clearFocus()
+        pos = (e.pos().x(), e.pos().y())
+        rectS = self.label.size()
+        rectP = self.label.pos()
+        rect = (rectP.x(), rectP.y(), rectS.width(), rectS.height())
+        if (rectPointIntersect(rect, pos)):
+            x = pos[0] - rect[0]
+            y = pos[1] - rect[1]
+            mapW = 0.0045 * 2 ** (17 - self.z)
+            mapH = 0.0025 * 2 ** (17 - self.z)
+            relX = mapW / rect[2]
+            relY = -mapH / rect[3]
+            point = (
+                self.ll[0] + relX * x - mapW / 2,
+                self.ll[1] + relY * y + mapH / 2,
+            )
+            self.search(point)
 
     def keyReleaseEvent(self, e: QKeyEvent) -> None:
         super().keyPressEvent(e)
@@ -176,8 +204,11 @@ class Form(QWidget):
         self.pixmap = loadImg(self.ll, self.z, self.getMapType(), pt)
         self.label.setPixmap(self.pixmap)
 
-    def search(self):
-        coords, name, index = getData(self.inp_search.text())
+    def search(self, point=None):
+        if (point is None):
+            coords, name, index = getData(self.inp_search.text())
+        else:
+            coords, name, index = getData(f"{point[0]},{point[1]}")
         if (coords is None):
             msgbox = QMessageBox()
             msgbox.setWindowTitle("Поиск объекта")
@@ -185,7 +216,8 @@ class Form(QWidget):
             msgbox.setText("Не удалось найти объект.")
             msgbox.exec()
             return
-        self.ll = coords
+        if (point is None):
+            self.ll = coords
         self.lastPlace = (name, index)
         self.setPlaceText()
         self.points = []
