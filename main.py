@@ -1,6 +1,6 @@
 import sys
 import requests
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QMessageBox
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QMessageBox, QGroupBox, QHBoxLayout, QRadioButton
 from PyQt5.QtGui import QPixmap, QKeyEvent
 from PyQt5.QtCore import Qt
 
@@ -33,12 +33,35 @@ class Form(QWidget):
         self.setImg()
 
     def initUI(self):
-        self.setGeometry(300, 300, 482, 482)
+        self.setGeometry(300, 300, 482, 520)
         self.setWindowTitle('Большая задача по Maps API')
 
         self.label = QLabel(self)
         self.label.move(16, 16)
         self.label.resize(450, 450)
+
+        groupBox = QGroupBox(self)
+        groupBox.setGeometry(10, 470, 461, 41)
+        groupBox.setTitle("Вид карты")
+        horizontalLayoutWidget = QWidget(groupBox)
+        horizontalLayoutWidget.setGeometry(10, 10, 441, 31)
+        horizontalLayout = QHBoxLayout(horizontalLayoutWidget)
+
+        self.rb_map_map = QRadioButton(horizontalLayoutWidget)
+        self.rb_map_map.setText("схема")
+        self.rb_map_map.setChecked(True)
+        self.rb_map_map.toggled.connect(self.setImg)
+        horizontalLayout.addWidget(self.rb_map_map)
+
+        self.rb_map_sat = QRadioButton(horizontalLayoutWidget)
+        self.rb_map_sat.setText("спутник")
+        self.rb_map_sat.toggled.connect(self.setImg)
+        horizontalLayout.addWidget(self.rb_map_sat)
+
+        self.rb_map_hyb = QRadioButton(horizontalLayoutWidget)
+        self.rb_map_hyb.setText("гибрид")
+        self.rb_map_hyb.toggled.connect(self.setImg)
+        horizontalLayout.addWidget(self.rb_map_hyb)
 
     def keyPressEvent(self, e: QKeyEvent) -> None:
         super().keyPressEvent(e)
@@ -68,7 +91,12 @@ class Form(QWidget):
             self.setImg()
 
     def setImg(self):
-        self.pixmap = loadImg(self.ll, self.z, "map")
+        mapType = "map"
+        if (self.rb_map_sat.isChecked()):
+            mapType = "sat"
+        elif (self.rb_map_hyb.isChecked()):
+            mapType = "sat,skl"
+        self.pixmap = loadImg(self.ll, self.z, mapType)
         self.label.setPixmap(self.pixmap)
 
 
