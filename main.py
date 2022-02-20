@@ -1,7 +1,7 @@
 import sys
 import requests
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QMessageBox, QGroupBox
-from PyQt5.QtWidgets import QHBoxLayout, QRadioButton, QLineEdit, QPushButton
+from PyQt5.QtWidgets import QHBoxLayout, QRadioButton, QLineEdit, QPushButton, QCheckBox
 from PyQt5.QtGui import QPixmap, QKeyEvent, QFont
 from PyQt5.QtCore import Qt, QEvent
 
@@ -46,14 +46,15 @@ def getData(geocode):
         try:
             json_response = response.json()
             toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
-            name = toponym["name"]
+            name = toponym["metaDataProperty"]["GeocoderMetaData"]["text"]
+            index = toponym["metaDataProperty"]["GeocoderMetaData"]["Address"]["postal_code"]
             toponym_coodrinates = toponym["Point"]["pos"]
             toponym_coodrinates = list(map(float, toponym_coodrinates.split(" ")))
-            return toponym_coodrinates, name
+            return toponym_coodrinates, name, index
         except Exception:
-            return None, None
+            return None, None, None
     else:
-        return None, None
+        return None, None, None
 
 
 class Form(QWidget):
@@ -61,12 +62,14 @@ class Form(QWidget):
         super().__init__()
         self.z = 13
         self.ll = [37.530887, 55.703118]
+        self.lastPlace = None
         self.points = []
         self.initUI()
         self.setImg()
 
     def initUI(self):
         self.setGeometry(300, 300, 482, 610)
+        self.setFixedSize(482, 610)
         self.setWindowTitle('Большая задача по Maps API')
         font = QFont()
         font.setPointSize(10)
@@ -117,6 +120,13 @@ class Form(QWidget):
         self.btn_delete.clicked.connect(self.delete)
         self.lbl_search = QLabel(self)
         self.lbl_search.setGeometry(10, 550, 461, 21)
+        self.cb_index = QCheckBox(self)
+        self.cb_index.setGeometry(210, 580, 181, 21)
+        font1 = QFont()
+        font1.setPointSize(8)
+        self.cb_index.setFont(font1)
+        self.cb_index.setText("Показывать почтовый индекс")
+        self.cb_index.stateChanged.connect(self.setPlaceText)
 
     def mousePressEvent(self, e) -> None:
         self.inp_search.clearFocus()
@@ -167,7 +177,7 @@ class Form(QWidget):
         self.label.setPixmap(self.pixmap)
 
     def search(self):
-        coords, name = getData(self.inp_search.text())
+        coords, name, index = getData(self.inp_search.text())
         if (coords is None):
             msgbox = QMessageBox()
             msgbox.setWindowTitle("Поиск объекта")
@@ -176,17 +186,28 @@ class Form(QWidget):
             msgbox.exec()
             return
         self.ll = coords
-        self.lbl_search.setText(name)
+        self.lastPlace = (name, index)
+        self.setPlaceText()
         self.points.append(tuple(coords))
         self.inp_search.clearFocus()
         self.setImg()
+
+    def setPlaceText(self):
+        if (self.lastPlace is None):
+            self.lbl_search.setText("")
+            return
+        text = self.lastPlace[0]
+        if (self.cb_index.isChecked()):
+            text += " (" + self.lastPlace[1] + ")"
+        self.lbl_search.setText(text)
 
     def delete(self):
         if (len(self.points) == 0):
             return
         self.points.pop()
+        self.lastPlace = None
         self.inp_search.setText("")
-        self.lbl_search.setText("")
+        self.setPlaceText()
         self.setImg()
 
 
