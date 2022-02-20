@@ -188,6 +188,7 @@ class Form(QWidget):
         self.ll = coords
         self.lastPlace = (name, index)
         self.setPlaceText()
+        self.points = []
         self.points.append(tuple(coords))
         self.inp_search.clearFocus()
         self.setImg()
