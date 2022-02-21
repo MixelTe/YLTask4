@@ -1,3 +1,4 @@
+import math
 import sys
 import requests
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QMessageBox, QGroupBox
@@ -64,6 +65,47 @@ def rectPointIntersect(rect, point):
         rect[1] + rect[3] >= point[1] and
         point[1] >= rect[1]
     )
+
+
+def findPlace(address_ll):
+    search_api_server = "https://search-maps.yandex.ru/v1/"
+    api_key = "dda3ddba-c9ea-4ead-9010-f43fbc15c6e3"
+    _, name, _ = getData(address_ll)
+    if (name is None):
+        return []
+
+    search_params = {
+        "apikey": api_key,
+        "lang": "ru_RU",
+        "text": name,
+        "type": "biz",
+    }
+
+    response = requests.get(search_api_server, params=search_params)
+    if not response:
+        return []
+
+    json_response = response.json()
+    return json_response["features"]
+
+
+def lonlat_distance(a, b):
+    degree_to_meters_factor = 111 * 1000  # 111 километров в метрах
+    a_lon, a_lat = list(map(float, a.split(",")))
+    b_lon, b_lat = list(map(float, b.split(",")))
+
+    # Берем среднюю по широте точку и считаем коэффициент для нее.
+    radians_lattitude = math.radians((a_lat + b_lat) / 2.)
+    lat_lon_factor = math.cos(radians_lattitude)
+
+    # Вычисляем смещения в метрах по вертикали и горизонтали.
+    dx = abs(a_lon - b_lon) * degree_to_meters_factor * lat_lon_factor
+    dy = abs(a_lat - b_lat) * degree_to_meters_factor
+
+    # Вычисляем расстояние между точками.
+    distance = math.sqrt(dx * dx + dy * dy)
+
+    return distance
 
 
 class Form(QWidget):
@@ -157,7 +199,19 @@ class Form(QWidget):
                 self.ll[0] + relX * x - mapW / 2,
                 self.ll[1] + relY * y + mapH / 2,
             )
-            self.search(point)
+            if (e.button() == Qt.MouseButton.LeftButton):
+                self.search(point)
+            if (e.button() == Qt.MouseButton.RightButton):
+                orgs = findPlace(f"{point[0]},{point[1]}")
+                for org in orgs:
+                    org_point = "{0},{1}".format(*org["geometry"]["coordinates"])
+                    if (lonlat_distance(org_point, f"{point[0]},{point[1]}") <= 50):
+                        self.points = []
+                        self.points.append(list(map(float, org_point.split(","))))
+                        self.lastPlace = [org["properties"]["name"], org["properties"]["description"]]
+                        self.setPlaceText()
+                        self.setImg()
+                        return
 
     def keyReleaseEvent(self, e: QKeyEvent) -> None:
         super().keyPressEvent(e)
