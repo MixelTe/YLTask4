@@ -259,18 +259,18 @@ class Form(QWidget):
         self.label.setPixmap(self.pixmap)
 
     def search(self, point=None):
-        if (point is None):
+        if (not point):
             coords, name, index = getData(self.inp_search.text())
         else:
             coords, name, index = getData(f"{point[0]},{point[1]}")
-        if (coords is None):
+        if (not coords):
             msgbox = QMessageBox()
             msgbox.setWindowTitle("Поиск объекта")
             msgbox.setIcon(QMessageBox.Icon.Information)
             msgbox.setText("Не удалось найти объект.")
             msgbox.exec()
             return
-        if (point is None):
+        if (not point):
             self.ll = coords
         self.lastPlace = (name, index)
         self.setPlaceText()
